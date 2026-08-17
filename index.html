@@ -519,6 +519,9 @@ function fitCanvas(cv, logicalW, logicalH){
 /* ══════════  drawing the electromagnet scene  ══════════ */
 var COIL_X0 = 300, COIL_X1 = 560, NAIL_Y = 158, NAIL_H = 26;
 var NAIL_X0 = 240, NAIL_TIP = 612;
+var BAT_X = 124, BAT_Y = 250, BAT_W = 52, BAT_H = 30, BAT_GAP = 4;
+var BAT_MID = BAT_Y + BAT_H/2;   // the return wire runs along here, behind the pack
+var BAT_TAP = BAT_X + BAT_W/2;   // the other wire leaves the top of the first cell
 
 function coilGeometry(turns){
   var spacing = (COIL_X1 - COIL_X0) / turns;
@@ -605,7 +608,8 @@ function drawPoles(ctx, flipped, alpha){
   ctx.restore();
 }
 function buildPath(turns, g){
-  var pts = [[150,250],[150,110],[COIL_X0+g.spacing*0.5,110]];
+  var xIn = g.cx(0), xOut = g.cx(turns-1);
+  var pts = [[BAT_TAP,BAT_MID],[BAT_TAP,110],[xIn,110],[xIn,NAIL_Y-g.ry]];
   for(var i=0;i<turns;i++){
     var cx = g.cx(i);
     for(var a=0;a<12;a++){
@@ -613,7 +617,7 @@ function buildPath(turns, g){
       pts.push([cx + g.rx*Math.cos(th), NAIL_Y + g.ry*Math.sin(th)]);
     }
   }
-  pts.push([COIL_X1, NAIL_Y+g.ry],[COIL_X1,262],[218,262],[218,250]);
+  pts.push([xOut, NAIL_Y+g.ry],[xOut,BAT_MID],[BAT_TAP,BAT_MID]);
   var cum=[0], total=0;
   for(var j=1;j<pts.length;j++){
     total += Math.hypot(pts[j][0]-pts[j-1][0], pts[j][1]-pts[j-1][1]);
@@ -630,18 +634,24 @@ function pointAt(path, d){
   var a=path.pts[lo], b=path.pts[hi];
   return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t];
 }
-function drawLeads(ctx, g){
+/* Both leads land exactly on the coil and on the battery. The return wire
+   runs at the pack's mid-height, so when cells are added the pack simply
+   covers more of it (batteries are drawn last) and the wire keeps looking
+   like it comes out of the right-hand end. */
+function drawLeads(ctx, g, turns){
+  var xIn = g.cx(0), xOut = g.cx(turns-1);
   ctx.strokeStyle = PAL["copper"]; ctx.lineWidth = 3.4;
   ctx.lineCap="round"; ctx.lineJoin="round";
   ctx.beginPath();
-  ctx.moveTo(150,250); ctx.lineTo(150,110); ctx.lineTo(COIL_X0+g.spacing*0.5,110);
-  ctx.moveTo(COIL_X1,NAIL_Y+g.ry); ctx.lineTo(COIL_X1,262); ctx.lineTo(218,262); ctx.lineTo(218,250);
+  ctx.moveTo(BAT_TAP, BAT_MID); ctx.lineTo(BAT_TAP,110);
+  ctx.lineTo(xIn,110); ctx.lineTo(xIn, NAIL_Y-g.ry);
+  ctx.moveTo(xOut, NAIL_Y+g.ry); ctx.lineTo(xOut, BAT_MID); ctx.lineTo(BAT_TAP, BAT_MID);
   ctx.stroke();
 }
 function drawBattery(ctx, cells, flipped, on){
-  var w=52,h=30,y=250,x0=124,x=x0;
+  var w=BAT_W,h=BAT_H,y=BAT_Y,x0=BAT_X,x=x0;
   for(var i=0;i<cells;i++){
-    x = x0 + i*(w+4);
+    x = x0 + i*(w+BAT_GAP);
     ctx.fillStyle = PAL["panel-2"]; ctx.strokeStyle = PAL["ink"]; ctx.lineWidth=2;
     ctx.beginPath();
     if(ctx.roundRect) ctx.roundRect(x,y,w,h,4); else ctx.rect(x,y,w,h);
@@ -689,7 +699,7 @@ function drawClips(ctx, n, pull){
     ctx.save();
     ctx.translate(0,-42);
     drawFieldLines(ctx, 0.9, phase, false);
-    drawLeads(ctx, g);
+    drawLeads(ctx, g, turns);
     drawCoilBack(ctx,g,turns);
     drawCore(ctx,"iron");
     drawCoilFront(ctx,g,turns);
@@ -770,7 +780,7 @@ function drawClips(ctx, n, pull){
     pull += (target-pull) * (reduced ? 1 : 0.12);
 
     drawFieldLines(ctx, Math.min(1, s/60), phase, st.flipped);
-    drawLeads(ctx, g);
+    drawLeads(ctx, g, st.turns);
     drawCoilBack(ctx,g,st.turns);
     drawCore(ctx, st.core);
     drawCoilFront(ctx,g,st.turns);
