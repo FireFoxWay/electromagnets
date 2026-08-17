@@ -594,11 +594,14 @@ function drawPoles(ctx, flipped, alpha){
   ctx.globalAlpha = alpha;
   ctx.font = "800 22px ui-rounded, system-ui, sans-serif";
   ctx.textAlign="center"; ctx.textBaseline="middle";
-  // Sit the pole letters above each end, clear of the coil and the paperclips.
+  // Sit the pole letters under each end of the nail: the band between the
+  // bottom of the coil (NAIL_Y+ry) and the lower lead wire is the only space
+  // clear of the wires, the coil, and the hanging paperclips.
+  var y = NAIL_Y + NAIL_H/2 + 43;
   ctx.fillStyle = PAL["steel"];
-  ctx.fillText(flipped ? "N" : "S", NAIL_X0+16, 112);
+  ctx.fillText(flipped ? "N" : "S", NAIL_X0+16, y);
   ctx.fillStyle = PAL["copper"];
-  ctx.fillText(flipped ? "S" : "N", NAIL_TIP-28, 112);
+  ctx.fillText(flipped ? "S" : "N", NAIL_TIP-28, y);
   ctx.restore();
 }
 function buildPath(turns, g){
